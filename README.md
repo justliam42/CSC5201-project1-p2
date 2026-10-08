@@ -1,6 +1,6 @@
 # CSC4201 — Mini-Project — Part 2
 
-Liam Otten  
+Albin Berisha, Grant Fisco, Liam Otten, Peli Orugbani
 October 2026
 
 ---
