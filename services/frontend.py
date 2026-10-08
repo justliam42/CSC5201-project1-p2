@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, Response, status
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/", tags=["Frontend"])
+router = APIRouter(prefix="", tags=["Frontend"])
 
 @router.get("/", response_class=Response, status_code=status.HTTP_200_OK)
 async def root():

@@ -5,6 +5,12 @@ October 2026
 
 ---
 
+## Running locally
+Basic Use:
+`fastapi run services/main.py`
+
+---
+
 ## Project Instructions
 
 For this (small!) project, you are part of a team that is designing a simple ecommerce application.
@@ -53,3 +59,4 @@ In addition, the team should:
 ## Other Requirements
 - You should create GitHub repos for your new services, and add me to them (so that I can at least see your code).
 - Demonstrate your (partially?) completed application running in the cloud during or prior to next week’s lab.
+
