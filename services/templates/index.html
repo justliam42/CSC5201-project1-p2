@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MiniProject Frontend</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        function triggerCheckout() {
+            const userId = document.getElementById('user_id_input').value;
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            htmx.ajax('GET', `/checkout/${userId}`, { target: '#checkout-result' });
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+
+    <style>
+        .scrollbox {
+        height: 300px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: auto; 
+        }
+    </style>
+</head>
+<body>
+<main class="container-fluid">
+
+    <h1>MiniProject Frontend</h1>
+
+    <div style="margin-bottom: 1rem; width: 150px;">
+        <label for="user_id">User ID:</label>
+        <input type="number" id="user_id_input" placeholder="Enter ID">
+    </div>
+
+    <div id="Cart" style="margin-top: 1rem; width: 300px;">
+        <h2> Cart </h2>
+        <div class="scrollbox"
+            hx-get="/cart/placeholder" 
+            hx-trigger="every 5s" 
+            hx-target="#cart-result"
+            hx-swap="innerHTML"
+            hx-on::config-request="event.detail.path = '/cart/' + document.getElementById('cart-id').value;">
+        </div>
+
+        <div>
+            <button onclick="triggerCheckout()" style="background-color: var(--pico-muted-color);">
+                Checkout
+            </button>
+        </div>
+
+        <div id="checkout-result" style="margin-top: 1rem;"></div>
+    </div>
+
+</main>
+</body>
+</html>

@@ -1,9 +1,9 @@
-from fastapi import FastAPI, APIRouter, Response, status
-from pydantic import BaseModel
+from fastapi import APIRouter
+from fastapi.responses import HTMLResponse
 
 router = APIRouter(prefix="/checkout", tags=["Checkout"])
 
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_class=HTMLResponse)
 async def checkout(user_id: str):
-    # TODO Implement checkout logic
-    return {"message": f"Checkout for user {user_id} is not implemented yet."}
+    print(f"Checkout triggered for user: {user_id}")
+    return f"<p>Checkout for user <strong>{user_id}</strong> is not implemented yet.</p>"
