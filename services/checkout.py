@@ -19,8 +19,8 @@ PAYMENT_URL = os.getenv("PAYMENT_URL")
 NOTIFICATION_URL = os.getenv("NOTIFICATION_URL")
 SHIPPING_URL = os.getenv("SHIPPING_URL")
 
-# a service that was asleep can take about 10 seconds to wake up
-TIMEOUT = 30
+# a service that was asleep can take more than a minute to wake up
+TIMEOUT = 90
 
 
 class Card(BaseModel):
