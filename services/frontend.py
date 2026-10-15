@@ -62,6 +62,13 @@ def add_to_cart(user_id: int, product_id: int):
         raise HTTPException(502, "cart service error")
     return HTMLResponse("Added to cart")
 
+@router.get("/cart/{user_id}", response_class=HTMLResponse)
+def view_cart(user_id: int, request: Request):
+    response = requests.get(f"{CART_URL}/cart/{user_id}", timeout=TIMEOUT)
+    if response.status_code != 200:
+        raise HTTPException(502, "cart service error")
+    return response.content
+
 
 @router.get("/recommendations/{user_id}", response_class=HTMLResponse)
 def recommendations(user_id: int, request: Request):
