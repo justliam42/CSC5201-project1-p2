@@ -1,0 +1,60 @@
+substitutions:
+  _ARTIFACT_REGISTRY_REPO: 'checkout-frontend'
+  _CATALOG_URL: 'https://catalog-km6fpv6l4a-uc.a.run.app'
+  _CART_URL: 'https://cart-service-617213266896.us-central1.run.app'
+  _RECOMMENDATION_URL: ''
+  _PAYMENT_URL: ''
+  _NOTIFICATION_URL: ''
+  _SHIPPING_URL: ''
+
+steps:
+  # Install dependencies
+  - name: 'python:3.13'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        pip install -r requirements.txt
+
+  # Build the combined checkout/frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/checkout-frontend:${SHORT_SHA}'
+      - '.'
+
+  # Run the checkout tests in the image that will be deployed
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'run'
+      - '--rm'
+      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/checkout-frontend:${SHORT_SHA}'
+      - 'pytest'
+      - 'checkout_test.py'
+      - '-q'
+
+  # Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/checkout-frontend:${SHORT_SHA}'
+
+  # Deploy the checkout/frontend app to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'checkout-frontend'
+      - '--image=us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/checkout-frontend:${SHORT_SHA}'
+      - '--region=us-central1'
+      - '--port=8080'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=CATALOG_URL=${_CATALOG_URL},CART_URL=${_CART_URL},RECOMMENDATION_URL=${_RECOMMENDATION_URL},PAYMENT_URL=${_PAYMENT_URL},NOTIFICATION_URL=${_NOTIFICATION_URL},SHIPPING_URL=${_SHIPPING_URL}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/checkout-frontend:${SHORT_SHA}'

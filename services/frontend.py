@@ -9,7 +9,7 @@ templates = Jinja2Templates(directory="services/templates")
 router = APIRouter(prefix="", tags=["Frontend"])
 
 CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app")
-CART_URL = os.getenv("CART_URL", "https://cart-service-km6fpv6l4a-uc.a.run.app")
+CART_URL = os.getenv("CART_URL", "https://cart-service-617213266896.us-central1.run.app")
 RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "")
 TIMEOUT = 90
 
