@@ -1,0 +1,19 @@
+{% if items %}
+    <ul>
+        {% for item in items %}
+        <li>
+            <strong>{{ item.name }}</strong>
+            <span>${{ "%.2f"|format(item.price) }}</span>
+            <button
+                type="button"
+                class="secondary outline"
+                onclick="deleteCartItem({{ user_id }}, {{ item.id }})"
+            >
+                Remove
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <em>Your cart is empty.</em>
+{% endif %}

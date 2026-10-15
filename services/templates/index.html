@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>MiniProject Frontend</title>
@@ -11,7 +12,35 @@
                 alert('Please enter a User ID');
                 return;
             }
-            htmx.ajax('GET', `/checkout/${userId}`, { target: '#checkout-result' });
+            fetch(`/checkout/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    card: {
+                        number: '4111111111111111',
+                        expiry: '12/30',
+                        cvv: '123'
+                    },
+                    address: {
+                        name: 'Test User',
+                        street: '1 Main St',
+                        city: 'Milwaukee',
+                        state: 'WI',
+                        zip: '53202'
+                    }
+                }
+            )})
+                .then(response => response.json().then(data => {
+                    if (!response.ok) {
+                        throw new Error(data.detail || 'Checkout failed');
+                    }
+                    document.getElementById('checkout-result').textContent =
+                        `Order ${data.order_id} placed successfully. Total: $${data.total.toFixed(2)}`;
+                }))
+                .catch(error => {
+                    document.getElementById('checkout-result').textContent =
+                        `Checkout failed: ${error.message}`;
+                });
         }
 
         function loadRecommendations() {
@@ -39,87 +68,130 @@
                         throw new Error(message);
                     }
                     result.textContent = message;
+                    refreshCart();
                 }))
                 .catch(error => {
                     result.textContent = `Unable to add item: ${error.message}`;
                 });
         }
+
+        function refreshCart() {
+            const userId = document.getElementById('user_id_input').value;
+            const cartResult = document.getElementById('cart-result');
+            if (!userId) {
+                cartResult.innerHTML = '<em>Enter a User ID to load cart...</em>';
+                return;
+            }
+
+            fetch(`/cart/${userId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Unable to load cart');
+                    }
+                    return response.text();
+                })
+                .then(markup => {
+                    if (document.getElementById('user_id_input').value === userId) {
+                        cartResult.innerHTML = markup;
+                    }
+                })
+                .catch(error => {
+                    cartResult.innerHTML = `<em>${error.message}</em>`;
+                });
+        }
+
+        function deleteCartItem(userId, itemId) {
+            fetch(`/cart/${userId}/${itemId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Unable to remove item');
+                    }
+                    refreshCart();
+                })
+                .catch(error => {
+                    document.getElementById('cart-result').innerHTML =
+                        `<em>${error.message}</em>`;
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('user_id_input').addEventListener(
+                'input',
+                refreshCart
+            );
+            setInterval(refreshCart, 1000);
+        });
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 
 
     <style>
         .scrollbox {
-        height: 300px;
-        border: 1px solid #ccc;
-        padding: 10px;
-        overflow-y: auto; 
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
         }
     </style>
 </head>
+
 <body>
-<main class="container-fluid">
+    <main class="container-fluid">
 
-    <h1>MiniProject Frontend</h1>
+        <h1>MiniProject Frontend</h1>
 
-    <div style="margin-bottom: 1rem; width: 150px;">
-        <label for="user_id">User ID:</label>
-        <input type="number" id="user_id_input" placeholder="Enter ID">
-    </div>
-
-    <section>
-        <h2>Catalog</h2>
-        <div class="grid">
-            {% for product in products %}
-            <article>
-                <header><strong>{{ product.name }}</strong></header>
-                <p>{{ product.description }}</p>
-                <footer>
-                    ${{ "%.2f"|format(product.price) }}
-                    <button type="button" onclick="addToCart({{ product.id }})">
-                        Add to cart
-                    </button>
-                    <small id="cart-result-{{ product.id }}" role="status"></small>
-                </footer>
-            </article>
-            {% else %}
-            <p>No products available.</p>
-            {% endfor %}
+        <div style="margin-bottom: 1rem; width: 150px;">
+            <label for="user_id">User ID:</label>
+            <input type="number" id="user_id_input" placeholder="Enter ID">
         </div>
-    </section>
 
-    <section>
-        <h2>Recommended for you</h2>
-        <button onclick="loadRecommendations()">Load recommendations</button>
-        <div id="recommendations-result"></div>
-    </section>
-
-    <div id="Cart" style="margin-top: 1rem; width: 300px;">
-        <h2> Cart </h2>
-
-        <!-- Corrected IDs and target container -->
-        <div class="scrollbox"
-            hx-get="/cart/placeholder" 
-            hx-trigger="every 5s" 
-            hx-target="#cart-result"
-            hx-swap="innerHTML"
-            hx-on::config-request="const uid = document.getElementById('user_id_input').value; if (uid) { event.detail.path = '/cart/' + uid; } else { event.preventDefault(); }">
-            
-            <!-- Target element where cart items will render -->
-            <div id="cart-result">
-                <em>Enter a User ID to load cart...</em>
+        <section>
+            <h2>Catalog</h2>
+            <div class="grid">
+                {% for product in products %}
+                <article>
+                    <header><strong>{{ product.name }}</strong></header>
+                    <p>{{ product.description }}</p>
+                    <footer>
+                        ${{ "%.2f"|format(product.price) }}
+                        <button type="button" onclick="addToCart({{ product.id }})">
+                            Add to cart
+                        </button>
+                        <small id="cart-result-{{ product.id }}" role="status"></small>
+                    </footer>
+                </article>
+                {% else %}
+                <p>No products available.</p>
+                {% endfor %}
             </div>
+        </section>
+
+        <section>
+            <h2>Recommended for you</h2>
+            <button onclick="loadRecommendations()">Load recommendations</button>
+            <div id="recommendations-result"></div>
+        </section>
+
+        <div id="Cart" style="margin-top: 1rem; width: 500px;">
+            <h2> Cart </h2>
+
+            <!-- Corrected IDs and target container -->
+            <div class="scrollbox">
+                <div id="cart-result">
+                    <em>Enter a User ID to load cart...</em>
+                </div>
+            </div>
+
+            <div>
+                <button onclick="triggerCheckout()" style="background-color: var(--pico-muted-color);">
+                    Checkout
+                </button>
+            </div>
+
+            <div id="checkout-result" style="margin-top: 1rem;"></div>
         </div>
 
-        <div>
-            <button onclick="triggerCheckout()" style="background-color: var(--pico-muted-color);">
-                Checkout
-            </button>
-        </div>
-
-        <div id="checkout-result" style="margin-top: 1rem;"></div>
-    </div>
-
-</main>
+    </main>
 </body>
+
 </html>

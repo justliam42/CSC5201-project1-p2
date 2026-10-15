@@ -16,7 +16,7 @@ router = APIRouter(prefix="/checkout", tags=["Checkout"])
 
 # urls of the other services
 CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app")
-CART_URL = os.getenv("CART_URL", "https://cart-service-km6fpv6l4a-uc.a.run.app")
+CART_URL = os.getenv("CART_URL", "https://cart-service-617213266896.us-central1.run.app")
 # if one of these is not set, checkout only logs that step
 PAYMENT_URL = os.getenv("PAYMENT_URL")
 NOTIFICATION_URL = os.getenv("NOTIFICATION_URL")
@@ -146,6 +146,7 @@ def checkout(user_id: int, order: Order, x_correlation_id: str | None = Header(d
     correlation_id.set(x_correlation_id or str(uuid.uuid4()))
     log.info("checkout started for user %s", user_id)
     items = get_cart(user_id)
+    print(f"Items in cart for user {user_id}: {items}")
     if not items:
         raise HTTPException(400, "cart is empty")
 

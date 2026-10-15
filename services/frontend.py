@@ -12,6 +12,7 @@ router = APIRouter(prefix="", tags=["Frontend"])
 
 CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app")
 CART_URL = os.getenv("CART_URL", "https://cart-service-617213266896.us-central1.run.app")
+CHECKOUT_URL = os.getenv("CHECKOUT_URL", "https://checkout-617213266896.us-central1.run.app")
 RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "")
 TIMEOUT = 90
 CATALOG_RETRIES = 2
@@ -41,8 +42,8 @@ def get_products(url):
 async def root(request: Request):
     products = get_products(CATALOG_URL)
     return templates.TemplateResponse(
+        request,
         "index.html",
-        name="index.html",
         context={"request": request, "products": products},
     )
 
@@ -67,7 +68,25 @@ def view_cart(user_id: int, request: Request):
     response = requests.get(f"{CART_URL}/cart/{user_id}", timeout=TIMEOUT)
     if response.status_code != 200:
         raise HTTPException(502, "cart service error")
-    return response.content
+    data = response.json()
+    items = data.get("items", data) if isinstance(data, dict) else data
+    return templates.TemplateResponse(
+        request,
+        "cart.html",
+        context={"request": request, "user_id": user_id, "items": items},
+    )
+
+
+@router.delete("/cart/{user_id}/{item_id}", response_class=HTMLResponse)
+def delete_cart_item(user_id: int, item_id: int):
+    response = requests.delete(
+        f"{CART_URL}/cart/{user_id}",
+        params={"item_id": item_id},
+        timeout=TIMEOUT,
+    )
+    if response.status_code >= 400:
+        raise HTTPException(502, "cart service error")
+    return HTMLResponse("Item removed")
 
 
 @router.get("/recommendations/{user_id}", response_class=HTMLResponse)
@@ -84,5 +103,7 @@ def recommendations(user_id: int, request: Request):
     data = response.json()
     products = data.get("products", data) if isinstance(data, dict) else data
     return templates.TemplateResponse(
-        "recommendations.html", {"request": request, "products": products}
+        request,
+        "recommendations.html",
+        {"request": request, "products": products},
     )
