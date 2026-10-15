@@ -38,7 +38,7 @@ Deploy from the repository root:
 gcloud run deploy recommendation-service --project radiant-striker-510815-f7 --region us-central1 --source services/recommendation --allow-unauthenticated --set-env-vars "CART_URL=https://cart-service-km6fpv6l4a-uc.a.run.app,CATALOG_URL=https://catalog-km6fpv6l4a-uc.a.run.app"
 ```
 
-Cloud Run URL: `https://recommendation-service-617213266896.us-central1.run.app`
+Cloud Run URL: `https://recommendation-service-km6fpv6l4a-uc.a.run.app`
 The root Dockerfile still builds Checkout.
 
 ---
