@@ -96,12 +96,19 @@
 
     <div id="Cart" style="margin-top: 1rem; width: 300px;">
         <h2> Cart </h2>
+
+        <!-- Corrected IDs and target container -->
         <div class="scrollbox"
             hx-get="/cart/placeholder" 
             hx-trigger="every 5s" 
             hx-target="#cart-result"
             hx-swap="innerHTML"
-            hx-on::config-request="event.detail.path = '/cart/' + document.getElementById('cart-id').value;">
+            hx-on::config-request="const uid = document.getElementById('user_id_input').value; if (uid) { event.detail.path = '/cart/' + uid; } else { event.preventDefault(); }">
+            
+            <!-- Target element where cart items will render -->
+            <div id="cart-result">
+                <em>Enter a User ID to load cart...</em>
+            </div>
         </div>
 
         <div>
