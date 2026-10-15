@@ -2,7 +2,6 @@ import logging
 import os
 import uuid
 from contextvars import ContextVar
-
 import google.cloud.logging
 import requests
 from google.cloud.logging_v2.handlers import CloudLoggingHandler
@@ -80,9 +79,13 @@ def call(service, method, url, **kwargs):
 
 def get_cart(user_id):
     r = call("cart", "GET", f"{CART_URL}/cart/{user_id}")
+    if r.status_code == 404:
+        return []
     if r.status_code != 200:
         raise HTTPException(502, "cart service error")
-    return r.json()["items"]
+    data = r.json()
+    # the cart used to send {"items": [...]}, now it sends the list itself
+    return data["items"] if isinstance(data, dict) else data
 
 
 def get_total(items):
