@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 import requests
@@ -13,12 +14,26 @@ CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app"
 CART_URL = os.getenv("CART_URL", "https://cart-service-617213266896.us-central1.run.app")
 RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "")
 TIMEOUT = 90
+CATALOG_RETRIES = 2
 
 
 def get_products(url):
-    response = requests.get(f"{url}/products", timeout=TIMEOUT)
-    response.raise_for_status()
-    data = response.json()
+    for attempt in range(CATALOG_RETRIES):
+        try:
+            response = requests.get(f"{url}/products", timeout=TIMEOUT)
+            if response.status_code >= 500 and attempt < CATALOG_RETRIES - 1:
+                time.sleep(0.5)
+                continue
+            response.raise_for_status()
+            data = response.json()
+            break
+        except requests.RequestException as error:
+            if attempt == CATALOG_RETRIES - 1:
+                raise HTTPException(502, "catalog service is unavailable") from error
+            time.sleep(0.5)
+    else:
+        raise HTTPException(502, "catalog service is unavailable")
+
     return data.get("products", data) if isinstance(data, dict) else data
 
 
