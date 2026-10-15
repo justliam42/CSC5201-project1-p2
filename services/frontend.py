@@ -10,7 +10,7 @@ router = APIRouter(prefix="", tags=["Frontend"])
 
 CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app")
 CART_URL = os.getenv("CART_URL", "https://cart-service-km6fpv6l4a-uc.a.run.app")
-RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "https://recommendation-service-km6fpv6l4a-uc.a.run.app")
+RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "")
 TIMEOUT = 90
 
 
