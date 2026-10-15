@@ -14,7 +14,7 @@ router = APIRouter(prefix="", tags=["Frontend"])
 CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app")
 CART_URL = os.getenv("CART_URL", "https://cart-service-617213266896.us-central1.run.app")
 CHECKOUT_URL = os.getenv("CHECKOUT_URL", "https://checkout-617213266896.us-central1.run.app")
-RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "")
+RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "https://recommendation-service-km6fpv6l4a-uc.a.run.app")
 TIMEOUT = 90
 CATALOG_RETRIES = 2
 HEADER = "X-Correlation-ID"
@@ -108,11 +108,14 @@ def recommendations(user_id: int, request: Request):
             "<p>Recommendations are not configured.</p>", status_code=503
         )
 
-    response = requests.get(
-        f"{RECOMMENDATION_URL}/recommendations/{user_id}", headers=cid_header(request), timeout=TIMEOUT
-    )
-    response.raise_for_status()
-    data = response.json()
+    try:
+        response = requests.get(
+            f"{RECOMMENDATION_URL}/recommendations/{user_id}", headers=cid_header(request), timeout=TIMEOUT
+        )
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError) as error:
+        raise HTTPException(502, "recommendation service error") from error
     products = data.get("products", data) if isinstance(data, dict) else data
     return templates.TemplateResponse(
         request,

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import checkout
+import frontend
 
 ORDER = {
     "card": {"number": "4111111111111111", "expiry": "12/30", "cvv": "123"},
@@ -31,6 +32,10 @@ class FakeResponse:
 
     def json(self):
         return self.data
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError()
 
 
 class FakeServices:
@@ -141,3 +146,49 @@ def test_shipping_and_email_are_called(client, services, monkeypatch):
 def test_missing_card(client, services):
     r = client.post("/checkout/1", json={"address": ORDER["address"]})
     assert r.status_code == 422
+
+
+def test_recommendation_url_is_configured_for_deployment():
+    assert frontend.RECOMMENDATION_URL, "Set RECOMMENDATION_URL before deploying"
+
+
+def recommendation_client(monkeypatch, products, status_code=200):
+    def fake_get(url, headers, timeout):
+        assert url == "http://recommendation/recommendations/110"
+        assert headers["X-Correlation-ID"] == "rec-test"
+        return FakeResponse(status_code, products)
+
+    monkeypatch.setattr(frontend, "RECOMMENDATION_URL", "http://recommendation")
+    monkeypatch.setattr(frontend.requests, "get", fake_get)
+    app = FastAPI()
+    app.include_router(frontend.router)
+    return TestClient(app)
+
+
+def test_recommendations_from_service(monkeypatch):
+    product = {"id": 2, "name": "Ball", "description": "A ball", "price": 15.0}
+    client = recommendation_client(monkeypatch, [product])
+
+    response = client.get("/recommendations/110", headers={"X-Correlation-ID": "rec-test"})
+
+    assert response.status_code == 200
+    assert "Ball" in response.text
+    assert "$15.00" in response.text
+
+
+def test_empty_recommendations(monkeypatch):
+    client = recommendation_client(monkeypatch, [])
+
+    response = client.get("/recommendations/110", headers={"X-Correlation-ID": "rec-test"})
+
+    assert response.status_code == 200
+    assert "No recommendations yet." in response.text
+
+
+def test_recommendation_service_error(monkeypatch):
+    client = recommendation_client(monkeypatch, None, 500)
+
+    response = client.get("/recommendations/110", headers={"X-Correlation-ID": "rec-test"})
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "recommendation service error"
