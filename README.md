@@ -9,6 +9,38 @@ October 2026
 Basic Use:
 `fastapi run services/main.py`
 
+### Recommendation service
+
+`services/recommendation` is a separate FastAPI service with the same
+router-plus-app layout as Checkout. It carries over the category matching from
+Peli's Part 1 mini project: read the cart and catalog, exclude products already
+in the cart, and return up to five products sharing a category. It accepts the
+team's `id` field and the earlier `product_id` field. An empty cart returns an
+empty list.
+
+Run it locally from the repository root:
+
+```powershell
+cd services/recommendation
+python -m pip install -r requirements.txt
+$env:CART_URL = "https://cart-service-km6fpv6l4a-uc.a.run.app"
+$env:CATALOG_URL = "https://catalog-km6fpv6l4a-uc.a.run.app"
+uvicorn recommendation_app:app --port 8081
+```
+
+`GET /recommendations/{user_id}` returns a product list for the existing
+frontend template. The frontend uses the Recommendation service URL from
+`RECOMMENDATION_URL`.
+
+Deploy from the repository root:
+
+```powershell
+gcloud run deploy recommendation-service --project radiant-striker-510815-f7 --region us-central1 --source services/recommendation --allow-unauthenticated --set-env-vars "CART_URL=https://cart-service-km6fpv6l4a-uc.a.run.app,CATALOG_URL=https://catalog-km6fpv6l4a-uc.a.run.app"
+```
+
+Cloud Run URL: `https://recommendation-service-617213266896.us-central1.run.app`
+The root Dockerfile still builds Checkout.
+
 ---
 
 ## Project Instructions
