@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 from pathlib import Path
 
 import requests
@@ -16,12 +17,18 @@ CHECKOUT_URL = os.getenv("CHECKOUT_URL", "https://checkout-617213266896.us-centr
 RECOMMENDATION_URL = os.getenv("RECOMMENDATION_URL", "")
 TIMEOUT = 90
 CATALOG_RETRIES = 2
+HEADER = "X-Correlation-ID"
 
 
-def get_products(url):
+def cid_header(request):
+    # the middleware in main.py puts the id on every request, pass it on
+    return {HEADER: request.headers.get(HEADER) or str(uuid.uuid4())}
+
+
+def get_products(url, headers=None):
     for attempt in range(CATALOG_RETRIES):
         try:
-            response = requests.get(f"{url}/products", timeout=TIMEOUT)
+            response = requests.get(f"{url}/products", headers=headers, timeout=TIMEOUT)
             if response.status_code >= 500 and attempt < CATALOG_RETRIES - 1:
                 time.sleep(0.5)
                 continue
@@ -40,7 +47,7 @@ def get_products(url):
 
 @router.get("/", response_class=Response, status_code=status.HTTP_200_OK)
 async def root(request: Request):
-    products = get_products(CATALOG_URL)
+    products = get_products(CATALOG_URL, cid_header(request))
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -49,15 +56,15 @@ async def root(request: Request):
 
 
 @router.post("/cart/{user_id}/{product_id}", response_class=HTMLResponse)
-def add_to_cart(user_id: int, product_id: int):
+def add_to_cart(user_id: int, product_id: int, request: Request):
     product = requests.get(
-        f"{CATALOG_URL}/products/{product_id}", timeout=TIMEOUT
+        f"{CATALOG_URL}/products/{product_id}", headers=cid_header(request), timeout=TIMEOUT
     )
     if product.status_code != 200:
         raise HTTPException(product.status_code, "product is not in the catalog")
 
     response = requests.post(
-        f"{CART_URL}/cart/{user_id}", json=product.json(), timeout=TIMEOUT
+        f"{CART_URL}/cart/{user_id}", json=product.json(), headers=cid_header(request), timeout=TIMEOUT
     )
     if response.status_code >= 400:
         raise HTTPException(502, "cart service error")
@@ -65,11 +72,15 @@ def add_to_cart(user_id: int, product_id: int):
 
 @router.get("/cart/{user_id}", response_class=HTMLResponse)
 def view_cart(user_id: int, request: Request):
-    response = requests.get(f"{CART_URL}/cart/{user_id}", timeout=TIMEOUT)
-    if response.status_code != 200:
+    response = requests.get(f"{CART_URL}/cart/{user_id}", headers=cid_header(request), timeout=TIMEOUT)
+    if response.status_code == 404:
+        # the cart service answers 404 when the cart is empty
+        items = []
+    elif response.status_code != 200:
         raise HTTPException(502, "cart service error")
-    data = response.json()
-    items = data.get("items", data) if isinstance(data, dict) else data
+    else:
+        data = response.json()
+        items = data.get("items", data) if isinstance(data, dict) else data
     return templates.TemplateResponse(
         request,
         "cart.html",
@@ -78,10 +89,11 @@ def view_cart(user_id: int, request: Request):
 
 
 @router.delete("/cart/{user_id}/{item_id}", response_class=HTMLResponse)
-def delete_cart_item(user_id: int, item_id: int):
+def delete_cart_item(user_id: int, item_id: int, request: Request):
     response = requests.delete(
         f"{CART_URL}/cart/{user_id}",
         params={"item_id": item_id},
+        headers=cid_header(request),
         timeout=TIMEOUT,
     )
     if response.status_code >= 400:
@@ -97,7 +109,7 @@ def recommendations(user_id: int, request: Request):
         )
 
     response = requests.get(
-        f"{RECOMMENDATION_URL}/recommendations/{user_id}", timeout=TIMEOUT
+        f"{RECOMMENDATION_URL}/recommendations/{user_id}", headers=cid_header(request), timeout=TIMEOUT
     )
     response.raise_for_status()
     data = response.json()
