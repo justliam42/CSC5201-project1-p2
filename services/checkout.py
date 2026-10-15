@@ -1,9 +1,13 @@
 import logging
 import os
 import uuid
+from contextvars import ContextVar
 
+import google.cloud.logging
 import requests
-from fastapi import APIRouter, HTTPException
+from google.cloud.logging_v2.handlers import CloudLoggingHandler
+from google.cloud.logging_v2.handlers.transports import SyncTransport
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +25,30 @@ SHIPPING_URL = os.getenv("SHIPPING_URL")
 
 # a service that was asleep can take more than a minute to wake up
 TIMEOUT = 90
+
+HEADER = "X-Correlation-ID"
+correlation_id = ContextVar("correlation_id", default="-")
+
+
+def add_correlation_id(record):
+    record.correlation_id = correlation_id.get()
+    record.json_fields = {"service": "checkout", "correlation_id": record.correlation_id}
+    return True
+
+
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("%(levelname)s [%(correlation_id)s] %(name)s %(message)s"))
+log.addFilter(add_correlation_id)
+log.addHandler(handler)
+log.setLevel(logging.INFO)
+log.propagate = False
+
+# send the same logs to Google Cloud Logging as structured entries
+try:
+    cloud_handler = CloudLoggingHandler(google.cloud.logging.Client(), name="checkout", transport=SyncTransport)
+    log.addHandler(cloud_handler)
+except Exception as e:
+    log.warning("cloud logging is off, logs only go to the terminal: %s", e)
 
 
 class Card(BaseModel):
@@ -44,7 +72,7 @@ class Order(BaseModel):
 
 def call(service, method, url, **kwargs):
     try:
-        return requests.request(method, url, timeout=TIMEOUT, **kwargs)
+        return requests.request(method, url, timeout=TIMEOUT, headers={HEADER: correlation_id.get()}, **kwargs)
     except requests.RequestException as e:
         log.error("%s service is not answering: %s", service, e)
         raise HTTPException(502, f"{service} service is not answering")
@@ -111,7 +139,9 @@ def empty_cart(user_id, items):
 
 
 @router.post("/{user_id}")
-def checkout(user_id: int, order: Order):
+def checkout(user_id: int, order: Order, x_correlation_id: str | None = Header(default=None)):
+    correlation_id.set(x_correlation_id or str(uuid.uuid4()))
+    log.info("checkout started for user %s", user_id)
     items = get_cart(user_id)
     if not items:
         raise HTTPException(400, "cart is empty")
@@ -131,4 +161,5 @@ def checkout(user_id: int, order: Order):
         "transaction_id": transaction_id,
         "total": total,
         "items": items,
+        "correlation_id": correlation_id.get(),
     }
