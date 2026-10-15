@@ -13,6 +13,37 @@
             }
             htmx.ajax('GET', `/checkout/${userId}`, { target: '#checkout-result' });
         }
+
+        function loadRecommendations() {
+            const userId = document.getElementById('user_id_input').value;
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            htmx.ajax('GET', `/recommendations/${userId}`, {
+                target: '#recommendations-result',
+                swap: 'innerHTML'
+            });
+        }
+
+        function addToCart(productId) {
+            const userId = document.getElementById('user_id_input').value;
+            const result = document.getElementById(`cart-result-${productId}`);
+            if (!userId) {
+                result.textContent = 'Enter a User ID first.';
+                return;
+            }
+            fetch(`/cart/${userId}/${productId}`, { method: 'POST' })
+                .then(response => response.text().then(message => {
+                    if (!response.ok) {
+                        throw new Error(message);
+                    }
+                    result.textContent = message;
+                }))
+                .catch(error => {
+                    result.textContent = `Unable to add item: ${error.message}`;
+                });
+        }
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 
@@ -35,6 +66,33 @@
         <label for="user_id">User ID:</label>
         <input type="number" id="user_id_input" placeholder="Enter ID">
     </div>
+
+    <section>
+        <h2>Catalog</h2>
+        <div class="grid">
+            {% for product in products %}
+            <article>
+                <header><strong>{{ product.name }}</strong></header>
+                <p>{{ product.description }}</p>
+                <footer>
+                    ${{ "%.2f"|format(product.price) }}
+                    <button type="button" onclick="addToCart({{ product.id }})">
+                        Add to cart
+                    </button>
+                    <small id="cart-result-{{ product.id }}" role="status"></small>
+                </footer>
+            </article>
+            {% else %}
+            <p>No products available.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section>
+        <h2>Recommended for you</h2>
+        <button onclick="loadRecommendations()">Load recommendations</button>
+        <div id="recommendations-result"></div>
+    </section>
 
     <div id="Cart" style="margin-top: 1rem; width: 300px;">
         <h2> Cart </h2>

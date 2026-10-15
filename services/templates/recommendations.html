@@ -1,0 +1,11 @@
+{% if products %}
+    {% for product in products %}
+    <article>
+        <strong>{{ product.name }}</strong>
+        <p>{{ product.description }}</p>
+        <small>${{ "%.2f"|format(product.price) }}</small>
+    </article>
+    {% endfor %}
+{% else %}
+    <p>No recommendations yet.</p>
+{% endif %}
