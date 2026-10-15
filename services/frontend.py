@@ -1,11 +1,12 @@
 import os
+from pathlib import Path
 
 import requests
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-templates = Jinja2Templates(directory="services/templates")
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 router = APIRouter(prefix="", tags=["Frontend"])
 
 CATALOG_URL = os.getenv("CATALOG_URL", "https://catalog-km6fpv6l4a-uc.a.run.app")
