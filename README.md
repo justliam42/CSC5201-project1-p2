@@ -34,7 +34,7 @@ Grant - **Shipping** service both provides estimated shipping costs, and (mock) 
 
 **Checkout** service will orchestrate other services to (mock) checkout a customer. This can be (mock) triggered by POSTing payment and shipping information to /checkout/user id.
 
-**Recommendation** service returns a list of up to 5 products from the catalog which are recommended based on the user’s current cart contents. It has a single endpoint recommendations/user id
+Peli **Recommendation** service returns a list of up to 5 products from the catalog which are recommended based on the user’s current cart contents. It has a single endpoint recommendations/user id
 
 **Frontend** service will serve webpages whose content depends on the other services.
 
