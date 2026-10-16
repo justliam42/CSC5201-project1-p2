@@ -125,11 +125,22 @@ def send_email(user_id, order_id, total):
     log.info("notification: email sent to user %s", user_id)
 
 
-def ship(order_id, address):
+def ship(order_id, address, user_id):
     if not SHIPPING_URL:
         log.info("shipping (fake): order %s to %s, %s", order_id, address.city, address.state)
         return
-    r = call("shipping", "POST", f"{SHIPPING_URL}/shipping/{order_id}", json=address.model_dump())
+    # the shipping service expects {"user_id", "address": {street, city, state, zip_code, country}}
+    body = {
+        "user_id": str(user_id),
+        "address": {
+            "street": address.street,
+            "city": address.city,
+            "state": address.state,
+            "zip_code": address.zip,
+            "country": "US",
+        },
+    }
+    r = call("shipping", "POST", f"{SHIPPING_URL}/shipping/{order_id}", json=body)
     if r.status_code >= 400:
         raise HTTPException(502, "shipping service error")
     log.info("shipping: started for order %s", order_id)
@@ -156,7 +167,7 @@ def checkout(user_id: int, order: Order, x_correlation_id: str | None = Header(d
     order_id = str(uuid.uuid4())
     transaction_id = pay(total, order.card)
     send_email(user_id, order_id, total)
-    ship(order_id, order.address)
+    ship(order_id, order.address, user_id)
     empty_cart(user_id, items)
 
     log.info("order %s done for user %s", order_id, user_id)

@@ -2,10 +2,10 @@ substitutions:
   _ARTIFACT_REGISTRY_REPO: 'checkout-frontend'
   _CATALOG_URL: 'https://catalog-km6fpv6l4a-uc.a.run.app'
   _CART_URL: 'https://cart-service-617213266896.us-central1.run.app'
-  _RECOMMENDATION_URL: ''
+  _RECOMMENDATION_URL: 'https://recommendation-service-617213266896.us-central1.run.app'
   _PAYMENT_URL: ''
   _NOTIFICATION_URL: ''
-  _SHIPPING_URL: ''
+  _SHIPPING_URL: 'https://shipping-service-617213266896.us-central1.run.app'
 
 steps:
   # Install dependencies
@@ -51,6 +51,7 @@ steps:
       - '--region=us-central1'
       - '--port=8080'
       - '--allow-unauthenticated'
+      - '--service-account=logging-writer@${PROJECT_ID}.iam.gserviceaccount.com'
       - '--set-env-vars=CATALOG_URL=${_CATALOG_URL},CART_URL=${_CART_URL},RECOMMENDATION_URL=${_RECOMMENDATION_URL},PAYMENT_URL=${_PAYMENT_URL},NOTIFICATION_URL=${_NOTIFICATION_URL},SHIPPING_URL=${_SHIPPING_URL}'
 
 options:
