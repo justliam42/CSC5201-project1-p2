@@ -1,0 +1,55 @@
+substitutions:
+  _ARTIFACT_REGISTRY_REPO: 'cart-api'
+  _REDIS_HOST: '10.10.0.116'
+  _REDIS_PORT: '6379'
+
+steps:
+  # Install dependencies
+  - name: 'python:3.12'
+    dir: cart-service
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        pip install -r requirements.txt
+
+  # Docker build
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: cart-service
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/cart-api:${SHORT_SHA}', '.']
+
+  # Run tests against an isolated Redis container
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: cart-service
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        docker network create cart-test >/dev/null 2>&1 || true
+        docker run -d --name cart-redis --network cart-test redis:alpine
+        trap 'docker rm -f cart-redis >/dev/null 2>&1 || true; docker network rm cart-test >/dev/null 2>&1 || true' EXIT
+        docker run --rm --network cart-test -e REDIS_HOST=cart-redis -e REDIS_PORT=6379 us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/cart-api:${SHORT_SHA} pytest tests.py -q
+
+  # Docker push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/cart-api:${SHORT_SHA}']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'cart-service'
+      - '--image=us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/cart-api:${SHORT_SHA}'
+      - '--region=us-central1'
+      - '--port=5000'
+      - '--allow-unauthenticated'
+      - '--service-account=logging-writer@${PROJECT_ID}.iam.gserviceaccount.com'
+      - '--set-env-vars=REDIS_HOST=${_REDIS_HOST},REDIS_PORT=${_REDIS_PORT}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/cart-api:${SHORT_SHA}'

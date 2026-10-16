@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:5000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    image: us-central1-docker.pkg.dev/radiant-striker-510815-f7/cart-api/cart-api:${SHORT_SHA}
+  
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
