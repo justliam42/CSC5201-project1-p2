@@ -2,7 +2,7 @@ substitutions:
   _ARTIFACT_REGISTRY_REPO: 'checkout-frontend'
   _CATALOG_URL: 'https://catalog-km6fpv6l4a-uc.a.run.app'
   _CART_URL: 'https://cart-service-617213266896.us-central1.run.app'
-  _RECOMMENDATION_URL: 'https://recommendation-service-617213266896.us-central1.run.app'
+  _RECOMMENDATION_URL: 'https://recommendation-service-km6fpv6l4a-uc.a.run.app'
   _PAYMENT_URL: ''
   _NOTIFICATION_URL: ''
   _SHIPPING_URL: 'https://shipping-service-617213266896.us-central1.run.app'
@@ -29,6 +29,8 @@ steps:
     args:
       - 'run'
       - '--rm'
+      - '-e'
+      - 'RECOMMENDATION_URL=${_RECOMMENDATION_URL}'
       - 'us-central1-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/checkout-frontend:${SHORT_SHA}'
       - 'pytest'
       - 'checkout_test.py'
